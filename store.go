@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -36,7 +37,7 @@ func NewStore() (*Store, error) {
 	return &Store{db: db}, nil
 }
 
-func InitStore(store *Store) error {
+func (store *Store) Init() error {
 	err1 := store.createStudentTable()
 	err2 := store.createTeacherTable()
 	err3 := store.createRegisteredTable()
@@ -70,6 +71,37 @@ func (store *Store) createRegisteredTable() error {
 		FOREIGN KEY (student_email) REFERENCES students(email) ON DELETE CASCADE,
 		FOREIGN KEY (teacher_email) REFERENCES teachers(email) ON DELETE CASCADE
 	)`
+
+	_, err := store.db.Exec(query)
+	return err
+}
+
+func (store *Store) AddTeacher(teacherEmail string) error {
+	query := `INSERT INTO teachers (email) VALUES ($1) ON CONFLICT DO NOTHING`
+
+	_, err := store.db.Exec(query, teacherEmail)
+	return err
+}
+
+func (store *Store) AddStudents(studentEmails []string) error {
+	values := []string{}
+	for _, email := range studentEmails {
+		values = append(values, fmt.Sprintf("('%v')", email))
+	}
+
+	query := fmt.Sprintf("INSERT INTO students (email) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
+
+	_, err := store.db.Exec(query)
+	return err
+}
+
+func (store *Store) Register(teacherStudentPairs []TeacherStudentPair) error {
+	values := []string{}
+	for _, pair := range teacherStudentPairs {
+		values = append(values, fmt.Sprintf("('%v', '%v')", pair.StudentEmail, pair.TeacherEmail))
+	}
+
+	query := fmt.Sprintf("INSERT INTO registered (student_email, teacher_email) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
 
 	_, err := store.db.Exec(query)
 	return err
