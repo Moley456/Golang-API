@@ -37,14 +37,14 @@ func NewStore() (*Store, error) {
 }
 
 func InitStore(store *Store) error {
-	err1 := createStudentTable(store)
-	err2 := createTeacherTable(store)
-	err3 := createRegisteredTable(store)
+	err1 := store.createStudentTable()
+	err2 := store.createTeacherTable()
+	err3 := store.createRegisteredTable()
 	err := errors.Join(err1, err2, err3)
 	return err
 }
 
-func createStudentTable(store *Store) error {
+func (store *Store) createStudentTable() error {
 	query := `CREATE TABLE IF NOT EXISTS students(
 		id INT PRIMARY KEY,
 		email VARCHAR(50) UNIQUE NOT NULL
@@ -54,7 +54,7 @@ func createStudentTable(store *Store) error {
 	return err
 }
 
-func createTeacherTable(store *Store) error {
+func (store *Store) createTeacherTable() error {
 	query := `CREATE TABLE IF NOT EXISTS teachers(
 		id SERIAL PRIMARY KEY,
 		email VARCHAR(50) UNIQUE NOT NULL
@@ -64,7 +64,7 @@ func createTeacherTable(store *Store) error {
 	return err
 }
 
-func createRegisteredTable(store *Store) error {
+func (store *Store) createRegisteredTable() error {
 	query := `CREATE TABLE IF NOT EXISTS registered(
 		student_id SERIAL,
 		teacher_id SERIAL,
