@@ -46,8 +46,7 @@ func InitStore(store *Store) error {
 
 func (store *Store) createStudentTable() error {
 	query := `CREATE TABLE IF NOT EXISTS students(
-		id INT PRIMARY KEY,
-		email VARCHAR(50) UNIQUE NOT NULL
+		email VARCHAR(50) PRIMARY KEY
 	)`
 
 	_, err := store.db.Exec(query)
@@ -56,8 +55,7 @@ func (store *Store) createStudentTable() error {
 
 func (store *Store) createTeacherTable() error {
 	query := `CREATE TABLE IF NOT EXISTS teachers(
-		id SERIAL PRIMARY KEY,
-		email VARCHAR(50) UNIQUE NOT NULL
+		email VARCHAR(50) PRIMARY KEY
 	)`
 
 	_, err := store.db.Exec(query)
@@ -66,11 +64,11 @@ func (store *Store) createTeacherTable() error {
 
 func (store *Store) createRegisteredTable() error {
 	query := `CREATE TABLE IF NOT EXISTS registered(
-		student_id SERIAL,
-		teacher_id SERIAL,
-		PRIMARY KEY (student_id, teacher_id),
-		FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-		FOREIGN KEY (teacher_id) REFERENCES teachers(id) ON DELETE CASCADE
+		student_email  VARCHAR(50),
+		teacher_email  VARCHAR(50),
+		PRIMARY KEY (student_email, teacher_email),
+		FOREIGN KEY (student_email) REFERENCES students(email) ON DELETE CASCADE,
+		FOREIGN KEY (teacher_email) REFERENCES teachers(email) ON DELETE CASCADE
 	)`
 
 	_, err := store.db.Exec(query)
