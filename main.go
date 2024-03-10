@@ -24,5 +24,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("%v", store)
+	initErr := InitStore(store)
+
+	if initErr != nil {
+		log.Fatal(initErr)
+	}
+	fmt.Printf("%v", store.db)
 }
