@@ -21,8 +21,10 @@ func NewStore() (*Store, error) {
 	dbUser := GetEnv("POSTGRES_USER")
 	dbName := GetEnv("POSTGRES_DB")
 	dbPassword := GetEnv("POSTGRES_PASSWORD")
+	dbPort := GetEnv("POSTGRES_PORT")
+	dbHost := GetEnv("POSTGRES_HOST")
 
-	connStr := fmt.Sprintf("user=%v dbname=%v sslmode=disable password=%v host=localhost", dbUser, dbName, dbPassword)
+	connStr := fmt.Sprintf("user=%v dbname=%v sslmode=disable password=%v host=%v port=%v", dbUser, dbName, dbPassword, dbHost, dbPort)
 	db, err := sqlx.Connect("postgres", connStr)
 
 	if err != nil {

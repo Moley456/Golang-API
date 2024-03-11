@@ -1,13 +1,25 @@
 version: '3.9'
 
 services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on: 
+      - postgres
+    env_file:
+      - .env
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "./main"] 
   postgres:
     image: postgres:16-alpine
     ports:
       - 5432:5432
     volumes:
       - ./postgres:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
+    env_file:
+      - .env
+
+volumes:
+  postgres:
