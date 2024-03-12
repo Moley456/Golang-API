@@ -114,7 +114,7 @@ func TestStudentExists(t *testing.T) {
 	store := &Store{db: db}
 	expected := mock.NewRows([]string{"email"}).AddRow("student@example.com")
 	studentEmail := "student@example.com"
-	mock.ExpectQuery("SELECT email FROM students").WithArgs(studentEmail).WillReturnRows(expected)
+	mock.ExpectQuery("SELECT email FROM students WHERE").WithArgs(studentEmail).WillReturnRows(expected)
 
 	ifStudentExists, err := store.IfStudentExists(studentEmail)
 
@@ -130,9 +130,41 @@ func TestStudentDoesNotExist(t *testing.T) {
 	store := &Store{db: db}
 	expected := mock.NewRows([]string{"email"})
 	studentEmail := "student@example.com"
-	mock.ExpectQuery("SELECT email FROM students").WithArgs(studentEmail).WillReturnRows(expected)
+	mock.ExpectQuery("SELECT email FROM students WHERE").WithArgs(studentEmail).WillReturnRows(expected)
 
 	ifStudentExists, err := store.IfStudentExists(studentEmail)
+
+	require.NoError(t, err)
+	require.Equal(t, ifStudentExists, false)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeacherExists(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+	expected := mock.NewRows([]string{"email"}).AddRow("teacher@example.com")
+	teacherEmail := "teacher@example.com"
+	mock.ExpectQuery("SELECT email FROM teachers WHERE").WithArgs(teacherEmail).WillReturnRows(expected)
+
+	ifStudentExists, err := store.IfTeacherExists(teacherEmail)
+
+	require.NoError(t, err)
+	require.Equal(t, ifStudentExists, true)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTeacherDoesNotExist(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+	expected := mock.NewRows([]string{"email"})
+	teacherEmail := "teacher@example.com"
+	mock.ExpectQuery("SELECT email FROM teachers WHERE").WithArgs(teacherEmail).WillReturnRows(expected)
+
+	ifStudentExists, err := store.IfTeacherExists(teacherEmail)
 
 	require.NoError(t, err)
 	require.Equal(t, ifStudentExists, false)

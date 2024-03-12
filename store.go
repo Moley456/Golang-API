@@ -111,6 +111,18 @@ func (store *Store) IfStudentExists(email string) (bool, error) {
 	return len(studentToFind) != 0, nil
 }
 
+func (store *Store) IfTeacherExists(email string) (bool, error) {
+	var teacherToFind []string
+	query := `SELECT email FROM teachers WHERE email = $1`
+
+	err := store.db.Select(&teacherToFind, query, email)
+	if err != nil {
+		return false, err
+	}
+
+	return len(teacherToFind) != 0, nil
+}
+
 func (store *Store) AddStudents(students []*Student) error {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("INSERT INTO students (email) VALUES ")
