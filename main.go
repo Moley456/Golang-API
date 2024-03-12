@@ -40,8 +40,8 @@ func setupRouter(store *Store) *gin.Engine {
 
 func handleRegister(c *gin.Context, store *Store) {
 	var input struct {
-		TeacherEmail  string   `json:"teacher" binding:"required"`
-		StudentEmails []string `json:"students"`
+		Teacher  string   `json:"teacher" binding:"required"`
+		Students []string `json:"students"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -51,16 +51,16 @@ func handleRegister(c *gin.Context, store *Store) {
 
 	// validate emails and create new teacher and student instances
 	var teacher *Teacher
-	if IsValidEmail(input.TeacherEmail) {
-		teacher = NewTeacher(input.TeacherEmail)
+	if IsValidEmail(input.Teacher) {
+		teacher = NewTeacher(input.Teacher)
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.TeacherEmail)})
+		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.Teacher)})
 		return
 
 	}
 
 	students := []*Student{}
-	for _, studentEmail := range input.StudentEmails {
+	for _, studentEmail := range input.Students {
 		if IsValidEmail(studentEmail) {
 			students = append(students, NewStudent(studentEmail))
 		} else {
@@ -82,8 +82,8 @@ func handleRegister(c *gin.Context, store *Store) {
 
 	// Register students to Teacher
 	teacherStudentPairs := []*TeacherStudentPair{}
-	for _, studentEmail := range input.StudentEmails {
-		teacherStudentPairs = append(teacherStudentPairs, NewTeacherStudentPair(input.TeacherEmail, studentEmail))
+	for _, studentEmail := range input.Students {
+		teacherStudentPairs = append(teacherStudentPairs, NewTeacherStudentPair(input.Teacher, studentEmail))
 	}
 	if err := store.Register(teacherStudentPairs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to register students to teachers."})
