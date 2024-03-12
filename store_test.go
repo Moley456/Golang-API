@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
@@ -44,13 +42,7 @@ func TestAddStudents(t *testing.T) {
 
 	studentEmails := []string{"student1@gmail.com", "student2@gmail.com"}
 
-	values := make([]string, len(studentEmails))
-	for i, email := range studentEmails {
-		values[i] = fmt.Sprintf("\\('%s'\\)", email)
-	}
-
-	query := fmt.Sprintf("INSERT INTO students \\(email\\) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
-	mock.ExpectExec(query).WillReturnResult(sqlmock.NewResult(1, int64(len(studentEmails))))
+	mock.ExpectExec("INSERT INTO students \\(email\\)").WithArgs(studentEmails[0], studentEmails[1]).WillReturnResult(sqlmock.NewResult(1, int64(len(studentEmails))))
 
 	err := store.AddStudents(studentEmails)
 	require.NoError(t, err)
@@ -63,15 +55,11 @@ func TestRegister(t *testing.T) {
 	defer db.Close()
 
 	store := &Store{db: db}
-	pairs := []TeacherStudentPair{TeacherStudentPair{"teacher@gmail.com", "student1@gmail.com"}, TeacherStudentPair{"teacher@gmail.com", "student1@gmail.com"}}
+	pairs := []TeacherStudentPair{{"teacher@gmail.com", "student1@gmail.com"}, {"teacher@gmail.com", "student2@gmail.com"}}
 
-	values := make([]string, len(pairs))
-	for i, pair := range pairs {
-		values[i] = fmt.Sprintf("\\('%s', '%s'\\)", pair.StudentEmail, pair.TeacherEmail)
-	}
-
-	query := fmt.Sprintf("INSERT INTO registered \\(student_email, teacher_email\\) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
-	mock.ExpectExec(query).WillReturnResult(sqlmock.NewResult(1, 2))
+	mock.ExpectExec("INSERT INTO registered \\(student_email, teacher_email\\) VALUES").
+		WithArgs("student1@gmail.com", "teacher@gmail.com", "student2@gmail.com", "teacher@gmail.com").
+		WillReturnResult(sqlmock.NewResult(1, 2))
 
 	err := store.Register(pairs)
 	require.NoError(t, err)

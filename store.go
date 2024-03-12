@@ -86,25 +86,39 @@ func (store *Store) AddTeacher(teacherEmail string) error {
 }
 
 func (store *Store) AddStudents(studentEmails []string) error {
-	values := []string{}
-	for _, email := range studentEmails {
-		values = append(values, fmt.Sprintf("('%v')", email))
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("INSERT INTO students (email) VALUES ")
+	params := make([]interface{}, len(studentEmails))
+	for i, email := range studentEmails {
+		params[i] = email
+
+		queryBuilder.WriteString("(?),")
 	}
 
-	query := fmt.Sprintf("INSERT INTO students (email) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
+	// drop last comma
+	query := queryBuilder.String()
+	query = query[:len(query)-1] + " ON CONFLICT DO NOTHING"
 
-	_, err := store.db.Exec(query)
+	_, err := store.db.Exec(query, params...)
 	return err
 }
 
 func (store *Store) Register(teacherStudentPairs []TeacherStudentPair) error {
-	values := []string{}
-	for _, pair := range teacherStudentPairs {
-		values = append(values, fmt.Sprintf("('%v', '%v')", pair.StudentEmail, pair.TeacherEmail))
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("INSERT INTO registered (student_email, teacher_email) VALUES ")
+	params := make([]interface{}, len(teacherStudentPairs)*2)
+	for i, pair := range teacherStudentPairs {
+		pos := i * 2
+		params[pos] = pair.StudentEmail
+		params[pos+1] = pair.TeacherEmail
+
+		queryBuilder.WriteString("(?, ?),")
 	}
 
-	query := fmt.Sprintf("INSERT INTO registered (student_email, teacher_email) VALUES %s ON CONFLICT DO NOTHING", strings.Join(values, ","))
+	// drop last comma
+	query := queryBuilder.String()
+	query = query[:len(query)-1] + " ON CONFLICT DO NOTHING"
 
-	_, err := store.db.Exec(query)
+	_, err := store.db.Exec(query, params...)
 	return err
 }
