@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -192,4 +193,35 @@ func (store *Store) AddSuspension(suspension *Suspension) error {
 
 	_, err := store.db.Exec(query, suspension.Email, suspension.SuspendedAt)
 	return err
+}
+
+func (store *Store) GetNotifiableStudentsOfTeacher(teacher *Teacher) ([]string, error) {
+	query := `SELECT students.email FROM teachers 
+	JOIN registered ON teachers.email=registered.teacher_email 
+	JOIN students ON students.email=registered.student_email 
+	JOIN suspensions ON students.email=suspensions.student_email
+	WHERE teachers.email=$1 AND suspensions.suspended_at > $2 AND (suspensions.suspended_until < $2 OR suspensions.suspended_until IS NULL)`
+
+	students := []string{}
+	err := store.db.Select(&students, query, teacher.Email, time.Now().UTC())
+
+	if err != nil {
+		return nil, err
+	}
+
+	return students, nil
+}
+
+func (store *Store) IsSuspended(email string) (bool, error) {
+	query := `SELECT student_email FROM suspensions
+	WHERE student_email=$1 AND suspended_at <= $2 AND (suspended_until >= $2 OR suspended_until IS NULL)`
+
+	students := []string{}
+	err := store.db.Select(&students, query, email, time.Now().UTC())
+
+	if err != nil {
+		return false, err
+	}
+
+	return len(students) != 0, nil
 }

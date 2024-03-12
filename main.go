@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"regexp"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,6 +36,7 @@ func setupRouter(store *Store) *gin.Engine {
 	router.POST("/api/register", makeHandleFunc(handleRegister, store))
 	router.GET("/api/commonstudents", makeHandleFunc(handleCommonStudents, store))
 	router.POST("/api/suspend", makeHandleFunc(handleSuspension, store))
+	router.POST("/api/retrievefornotifications", makeHandleFunc(handleRetrieveNotifications, store))
 
 	return router
 }
@@ -157,6 +159,92 @@ func handleSuspension(c *gin.Context, store *Store) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func handleRetrieveNotifications(c *gin.Context, store *Store) {
+	var input struct {
+		Teacher      string `json:"teacher" binding:"required"`
+		Notification string `json:"notification" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "One or more fields are missing or invalid."})
+		return
+	}
+
+	// Check if teacher is registered
+	isTeacherExists, err := store.IfTeacherExists(input.Teacher)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "Something went wrong when checking if teacher is registered."})
+		return
+	}
+	if !isTeacherExists {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Given teacher is not registered."})
+		return
+	}
+
+	// validate emails and create new teacher and student instances
+	var teacher *Teacher
+	if IsValidEmail(input.Teacher) {
+		teacher = NewTeacher(input.Teacher)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.Teacher)})
+		return
+	}
+
+	// Handling of mentioned emails
+	// Get all mentioned emails
+	emailPattern := `@\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b`
+
+	re := regexp.MustCompile(emailPattern)
+	emails := re.FindAllString(input.Notification, -1)
+
+	notifiableEmailsMap := map[string]bool{}
+
+	for _, email := range emails {
+		// Strip the @ of the mention
+		email = email[1:]
+		// Check if mentioned email is a student
+		isStudentExists, err := store.IfStudentExists(email)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": fmt.Sprintf("Something went wrong when checking if %s is registered.", email)})
+			return
+		}
+		if !isStudentExists {
+			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Student (%s) mentioned is not registered.", email)})
+			return
+		}
+
+		// Check if mentioned email is suspended
+		isSuspended, err := store.IsSuspended(email)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": fmt.Sprintf("Something went wrong when checking if %s is suspended.", email)})
+			return
+		}
+		if !isSuspended {
+			notifiableEmailsMap[email] = true
+		}
+	}
+
+	// Handling of students registered to teacher
+	studentEmails, err := store.GetNotifiableStudentsOfTeacher(teacher)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "Something went wrong when getting notifiable students"})
+		return
+	}
+
+	for _, studentEmail := range studentEmails {
+		notifiableEmailsMap[studentEmail] = true
+	}
+
+	// Get final slice of notifiable emails
+	notifiableEmails := []string{}
+	for notifiableEmail := range notifiableEmailsMap {
+		notifiableEmails = append(notifiableEmails, notifiableEmail)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"recipients": notifiableEmails})
 }
 
 // Function to convert API Handlers to Gin Handle Funcs because of the store param
