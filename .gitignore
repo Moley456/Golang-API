@@ -21,4 +21,5 @@
 go.work
 
 .env
-data
+postgres
+postgres-dev

@@ -27,11 +27,11 @@ func main() {
 	}
 
 	// Setup and run the server
-	router := setupRouter(store)
+	router := SetupRouter(store)
 	router.Run(":8080")
 }
 
-func setupRouter(store *Store) *gin.Engine {
+func SetupRouter(store *Store) *gin.Engine {
 	router := gin.Default()
 	router.POST("/api/register", makeHandleFunc(handleRegister, store))
 	router.GET("/api/commonstudents", makeHandleFunc(handleCommonStudents, store))
