@@ -16,7 +16,7 @@ type Store struct {
 }
 
 func NewStore() (*Store, error) {
-	// Load .env file for POSTGRES conn details.
+	// Load .env file for POSTGRES conn details (only useful for dev)
 	LoadDotEnv()
 
 	dbUser := GetEnv("POSTGRES_USER")
@@ -196,11 +196,12 @@ func (store *Store) AddSuspension(suspension *Suspension) error {
 }
 
 func (store *Store) GetNotifiableStudentsOfTeacher(teacher *Teacher) ([]string, error) {
-	query := `SELECT students.email FROM teachers 
-	JOIN registered ON teachers.email=registered.teacher_email 
-	JOIN students ON students.email=registered.student_email 
-	JOIN suspensions ON students.email=suspensions.student_email
-	WHERE teachers.email=$1 AND suspensions.suspended_at > $2 AND (suspensions.suspended_until < $2 OR suspensions.suspended_until IS NULL)`
+	query := `SELECT student_email FROM registered WHERE teacher_email=$1 AND student_email NOT IN ( 
+		SELECT students.email FROM teachers
+		JOIN registered ON teachers.email=registered.teacher_email 
+		JOIN students ON students.email=registered.student_email 
+		JOIN suspensions ON students.email=suspensions.student_email
+		WHERE teachers.email=$1 AND suspensions.suspended_at <= $2 AND (suspensions.suspended_until >= $2 OR suspensions.suspended_until IS NULL))`
 
 	students := []string{}
 	err := store.db.Select(&students, query, teacher.Email, time.Now().UTC())
