@@ -92,7 +92,7 @@ func (store *Store) AddStudents(studentEmails []string) error {
 	for i, email := range studentEmails {
 		params[i] = email
 
-		queryBuilder.WriteString("(?),")
+		queryBuilder.WriteString(fmt.Sprintf("($%d),", i+1))
 	}
 
 	// drop last comma
@@ -112,7 +112,7 @@ func (store *Store) Register(teacherStudentPairs []TeacherStudentPair) error {
 		params[pos] = pair.StudentEmail
 		params[pos+1] = pair.TeacherEmail
 
-		queryBuilder.WriteString("(?, ?),")
+		queryBuilder.WriteString(fmt.Sprintf("($%d, $%d),", pos+1, pos+2))
 	}
 
 	// drop last comma
