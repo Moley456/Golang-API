@@ -25,10 +25,10 @@ func TestAddTeacher(t *testing.T) {
 
 	store := &Store{db: db}
 
-	teacherEmail := "teacher@example.com"
-	mock.ExpectExec("INSERT INTO teachers").WithArgs(teacherEmail).WillReturnResult(sqlmock.NewResult(1, 1))
+	teacher := NewTeacher("teacher@example.com")
+	mock.ExpectExec("INSERT INTO teachers").WithArgs(teacher.Email).WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := store.AddTeacher(teacherEmail)
+	err := store.AddTeacher(teacher)
 	require.NoError(t, err)
 
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -40,11 +40,11 @@ func TestAddStudents(t *testing.T) {
 
 	store := &Store{db: db}
 
-	studentEmails := []string{"student1@gmail.com", "student2@gmail.com"}
+	students := []*Student{NewStudent("student1@gmail.com"), NewStudent("student2@gmail.com")}
 
-	mock.ExpectExec("INSERT INTO students \\(email\\)").WithArgs(studentEmails[0], studentEmails[1]).WillReturnResult(sqlmock.NewResult(1, int64(len(studentEmails))))
+	mock.ExpectExec("INSERT INTO students \\(email\\)").WithArgs(students[0].Email, students[1].Email).WillReturnResult(sqlmock.NewResult(1, int64(len(students))))
 
-	err := store.AddStudents(studentEmails)
+	err := store.AddStudents(students)
 	require.NoError(t, err)
 
 	require.NoError(t, mock.ExpectationsWereMet())
@@ -55,10 +55,10 @@ func TestRegister(t *testing.T) {
 	defer db.Close()
 
 	store := &Store{db: db}
-	pairs := []TeacherStudentPair{{"teacher@gmail.com", "student1@gmail.com"}, {"teacher@gmail.com", "student2@gmail.com"}}
+	pairs := []*TeacherStudentPair{NewTeacherStudentPair("teacher@gmail.com", "student1@gmail.com"), NewTeacherStudentPair("teacher@gmail.com", "student2@gmail.com")}
 
 	mock.ExpectExec("INSERT INTO registered \\(student_email, teacher_email\\) VALUES").
-		WithArgs("student1@gmail.com", "teacher@gmail.com", "student2@gmail.com", "teacher@gmail.com").
+		WithArgs(pairs[0].StudentEmail, pairs[0].TeacherEmail, pairs[1].StudentEmail, pairs[1].TeacherEmail).
 		WillReturnResult(sqlmock.NewResult(1, 2))
 
 	err := store.Register(pairs)

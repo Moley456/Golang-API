@@ -43,7 +43,8 @@ func (store *Store) Init() error {
 	err1 := store.createStudentTable()
 	err2 := store.createTeacherTable()
 	err3 := store.createRegisteredTable()
-	err := errors.Join(err1, err2, err3)
+	err4 := store.createSuspendedTable()
+	err := errors.Join(err1, err2, err3, err4)
 	return err
 }
 
@@ -78,19 +79,31 @@ func (store *Store) createRegisteredTable() error {
 	return err
 }
 
-func (store *Store) AddTeacher(teacherEmail string) error {
-	query := `INSERT INTO teachers (email) VALUES ($1) ON CONFLICT DO NOTHING`
+func (store *Store) createSuspendedTable() error {
+	query := `CREATE TABLE IF NOT EXISTS registered(
+		student_email  VARCHAR(50),
+		suspended_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		PRIMARY KEY (student_email, suspended_at),
+		FOREIGN KEY (student_email) REFERENCES students(email) ON DELETE CASCADE
+	)`
 
-	_, err := store.db.Exec(query, teacherEmail)
+	_, err := store.db.Exec(query)
 	return err
 }
 
-func (store *Store) AddStudents(studentEmails []string) error {
+func (store *Store) AddTeacher(teacher *Teacher) error {
+	query := `INSERT INTO teachers (email) VALUES ($1) ON CONFLICT DO NOTHING`
+
+	_, err := store.db.Exec(query, teacher.Email)
+	return err
+}
+
+func (store *Store) AddStudents(students []*Student) error {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("INSERT INTO students (email) VALUES ")
-	params := make([]interface{}, len(studentEmails))
-	for i, email := range studentEmails {
-		params[i] = email
+	params := make([]interface{}, len(students))
+	for i, student := range students {
+		params[i] = student.Email
 
 		queryBuilder.WriteString(fmt.Sprintf("($%d),", i+1))
 	}
@@ -103,7 +116,7 @@ func (store *Store) AddStudents(studentEmails []string) error {
 	return err
 }
 
-func (store *Store) Register(teacherStudentPairs []TeacherStudentPair) error {
+func (store *Store) Register(teacherStudentPairs []*TeacherStudentPair) error {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("INSERT INTO registered (student_email, teacher_email) VALUES ")
 	params := make([]interface{}, len(teacherStudentPairs)*2)

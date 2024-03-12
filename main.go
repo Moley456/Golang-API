@@ -3,26 +3,10 @@ package main
 import (
 	"fmt"
 	"log"
-
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
-
-type Teacher struct {
-	Email    string `json:"email"`
-	Students []Student
-}
-
-type Student struct {
-	Email    string `json:"email"`
-	Teachers []Teacher
-}
-
-type TeacherStudentPair struct {
-	TeacherEmail string `json:"teacherEmail"`
-	StudentEmail string `json:"studentEmail"`
-}
 
 type apiHandler func(c *gin.Context, store *Store)
 
@@ -56,8 +40,8 @@ func setupRouter(store *Store) *gin.Engine {
 
 func handleRegister(c *gin.Context, store *Store) {
 	var input struct {
-		Teacher  string   `json:"teacher" binding:"required"`
-		Students []string `json:"students"`
+		TeacherEmail  string   `json:"teacher" binding:"required"`
+		StudentEmails []string `json:"students"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -65,35 +49,40 @@ func handleRegister(c *gin.Context, store *Store) {
 		return
 	}
 
-	// validate emails
-	if !IsValidEmail(input.Teacher) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.Teacher)})
+	// validate emails and create new teacher and student instances
+	var teacher *Teacher
+	if !IsValidEmail(input.TeacherEmail) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.TeacherEmail)})
 		return
+	} else {
+		teacher = NewTeacher(input.TeacherEmail)
 	}
 
-	for _, studentEmail := range input.Students {
+	students := []*Student{}
+	for _, studentEmail := range input.StudentEmails {
 		if !IsValidEmail(studentEmail) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A student's email (%s) is invalid.", studentEmail)})
 			return
+		} else {
+			students = append(students, NewStudent(studentEmail))
 		}
 	}
 
 	// Add teacher if does not exist
-	if err := store.AddTeacher(input.Teacher); err != nil {
+	if err := store.AddTeacher(teacher); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to add teacher."})
 		return
 	}
 
-	// Add students if do not exist
-	if err := store.AddStudents(input.Students); err != nil {
+	if err := store.AddStudents(students); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to add students."})
 		return
 	}
 
 	// Register students to Teacher
-	teacherStudentPairs := []TeacherStudentPair{}
-	for _, student := range input.Students {
-		teacherStudentPairs = append(teacherStudentPairs, TeacherStudentPair{input.Teacher, student})
+	teacherStudentPairs := []*TeacherStudentPair{}
+	for _, studentEmail := range input.StudentEmails {
+		teacherStudentPairs = append(teacherStudentPairs, NewTeacherStudentPair(input.TeacherEmail, studentEmail))
 	}
 	if err := store.Register(teacherStudentPairs); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to register students to teachers."})
