@@ -136,14 +136,14 @@ func (store *Store) Register(teacherStudentPairs []*TeacherStudentPair) error {
 	return err
 }
 
-func (store *Store) GetCommonStudents(teachers []string) ([]string, error) {
+func (store *Store) GetCommonStudents(teachers []*Teacher) ([]string, error) {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString(`SELECT student_email AS email
 		FROM registered
 		WHERE teacher_email IN (`)
 	params := make([]interface{}, len(teachers))
 	for i, teacher := range teachers {
-		params[i] = teacher
+		params[i] = teacher.Email
 
 		queryBuilder.WriteString(fmt.Sprintf("$%d,", i+1))
 	}

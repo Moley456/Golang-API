@@ -51,20 +51,21 @@ func handleRegister(c *gin.Context, store *Store) {
 
 	// validate emails and create new teacher and student instances
 	var teacher *Teacher
-	if !IsValidEmail(input.TeacherEmail) {
+	if IsValidEmail(input.TeacherEmail) {
+		teacher = NewTeacher(input.TeacherEmail)
+	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.TeacherEmail)})
 		return
-	} else {
-		teacher = NewTeacher(input.TeacherEmail)
+
 	}
 
 	students := []*Student{}
 	for _, studentEmail := range input.StudentEmails {
-		if !IsValidEmail(studentEmail) {
+		if IsValidEmail(studentEmail) {
+			students = append(students, NewStudent(studentEmail))
+		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A student's email (%s) is invalid.", studentEmail)})
 			return
-		} else {
-			students = append(students, NewStudent(studentEmail))
 		}
 	}
 
@@ -93,16 +94,19 @@ func handleRegister(c *gin.Context, store *Store) {
 }
 
 func handleCommonStudents(c *gin.Context, store *Store) {
-	teachers := c.QueryArray("teacher")
-	if len(teachers) == 0 {
+	teacherEmails := c.QueryArray("teacher")
+	if len(teacherEmails) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "No teachers given in request."})
 		return
 	}
 
-	// Validate emails
-	for _, teacher := range teachers {
-		if !IsValidEmail(teacher) {
-			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A teacher's email (%s) is invalid.", teacher)})
+	// Validate emails and create teacher instances
+	teachers := []*Teacher{}
+	for _, teacherEmail := range teacherEmails {
+		if IsValidEmail(teacherEmail) {
+			teachers = append(teachers, NewTeacher(teacherEmail))
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A teacher's email (%s) is invalid.", teacherEmail)})
 			return
 		}
 	}
