@@ -34,6 +34,7 @@ func setupRouter(store *Store) *gin.Engine {
 	router := gin.Default()
 	router.POST("/api/register", makeHandleFunc(handleRegister, store))
 	router.GET("/api/commonstudents", makeHandleFunc(handleCommonStudents, store))
+	router.POST("/api/suspend", makeHandleFunc(handleSuspension, store))
 
 	return router
 }
@@ -118,6 +119,33 @@ func handleCommonStudents(c *gin.Context, store *Store) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"students": students})
+}
+
+func handleSuspension(c *gin.Context, store *Store) {
+	var input struct {
+		Student string `json:"student" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "student field is missing or invalid."})
+		return
+	}
+
+	// validate email and create new Student instance
+	var suspension *Suspension
+	if IsValidEmail(input.Student) {
+		suspension = NewSuspension(input.Student)
+	} else {
+		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Student's email (%s) is invalid.", input.Student)})
+		return
+	}
+
+	if err := store.AddSuspension(suspension); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to suspend student."})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // Function to convert API Handlers to Gin Handle Funcs because of the store param

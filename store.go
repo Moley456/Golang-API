@@ -43,7 +43,7 @@ func (store *Store) Init() error {
 	err1 := store.createStudentTable()
 	err2 := store.createTeacherTable()
 	err3 := store.createRegisteredTable()
-	err4 := store.createSuspendedTable()
+	err4 := store.createSuspensionTable()
 	err := errors.Join(err1, err2, err3, err4)
 	return err
 }
@@ -79,10 +79,11 @@ func (store *Store) createRegisteredTable() error {
 	return err
 }
 
-func (store *Store) createSuspendedTable() error {
-	query := `CREATE TABLE IF NOT EXISTS registered(
+func (store *Store) createSuspensionTable() error {
+	query := `CREATE TABLE IF NOT EXISTS suspensions(
 		student_email  VARCHAR(50),
 		suspended_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+		suspended_until TIMESTAMPTZ,
 		PRIMARY KEY (student_email, suspended_at),
 		FOREIGN KEY (student_email) REFERENCES students(email) ON DELETE CASCADE
 	)`
@@ -162,4 +163,11 @@ func (store *Store) GetCommonStudents(teachers []*Teacher) ([]string, error) {
 		return nil, err
 	}
 	return students, nil
+}
+
+func (store *Store) AddSuspension(suspension *Suspension) error {
+	query := `INSERT INTO suspensions (email, suspended_at) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+
+	_, err := store.db.Exec(query, suspension.Email, suspension.SuspendedAt)
+	return err
 }

@@ -39,8 +39,9 @@ func NewTeacherStudentPair(teacherEmail string, studentEmail string) *TeacherStu
 }
 
 type Suspension struct {
-	Email       string    `json:"email"`
-	SuspendedAt time.Time `json:"suspendedAt"`
+	Email          string    `json:"email"`
+	SuspendedAt    time.Time `json:"suspendedAt"`
+	SuspendedUntil time.Time `json:"suspendedUntil"`
 }
 
 func NewSuspension(email string) *Suspension {
