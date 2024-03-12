@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/mail"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -24,4 +25,9 @@ func GetEnv(key string) string {
 	}
 
 	return value
+}
+
+func IsValidEmail(email string) bool {
+	_, err := mail.ParseAddress(email)
+	return err == nil
 }

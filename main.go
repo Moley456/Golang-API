@@ -59,8 +59,19 @@ func handleRegister(c *gin.Context, store *Store) {
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "One or more fields are missing or invalid."})
 		return
+	}
+
+	// validate emails
+	if !IsValidEmail(input.Teacher) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.Teacher)})
+	}
+
+	for _, studentEmail := range input.Students {
+		if !IsValidEmail(studentEmail) {
+			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A student's email (%s) is invalid.", studentEmail)})
+		}
 	}
 
 	// Add teacher if does not exist
