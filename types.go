@@ -3,26 +3,22 @@ package main
 import "time"
 
 type Teacher struct {
-	Email    string `json:"email"`
-	Students []Student
+	Email string `json:"email"`
 }
 
 func NewTeacher(email string) *Teacher {
 	return &Teacher{
-		Email:    email,
-		Students: []Student{},
+		Email: email,
 	}
 }
 
 type Student struct {
-	Email    string `json:"email"`
-	Teachers []Teacher
+	Email string `json:"email"`
 }
 
 func NewStudent(email string) *Student {
 	return &Student{
-		Email:    email,
-		Teachers: []Teacher{},
+		Email: email,
 	}
 }
 

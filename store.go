@@ -151,9 +151,7 @@ func (store *Store) Register(teacherStudentPairs []*TeacherStudentPair) error {
 
 func (store *Store) GetCommonStudents(teachers []*Teacher) ([]string, error) {
 	var queryBuilder strings.Builder
-	queryBuilder.WriteString(`SELECT student_email AS email
-		FROM registered
-		WHERE teacher_email IN (`)
+	queryBuilder.WriteString(`SELECT student_email AS email FROM registered WHERE teacher_email IN (`)
 	params := make([]interface{}, len(teachers))
 	for i, teacher := range teachers {
 		params[i] = teacher.Email

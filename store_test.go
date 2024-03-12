@@ -67,6 +67,31 @@ func TestRegister(t *testing.T) {
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestGetCommonStudents(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+
+	teacher1 := NewTeacher("teacher1@example.com")
+	teacher2 := NewTeacher("teacher2@example.com")
+	teachers := []*Teacher{teacher1, teacher2}
+
+	studentEmail1 := "student1@example.com"
+	studentEmail2 := "student2@example.com"
+	expected := mock.NewRows([]string{"email"}).AddRow(studentEmail1).AddRow(studentEmail2)
+
+	mock.ExpectQuery("SELECT student_email AS email FROM registered WHERE teacher_email IN \\(.+\\) GROUP BY student_email HAVING COUNT\\(DISTINCT teacher_email\\) = \\$").
+		WithArgs(teachers[0].Email, teachers[1].Email, len(teachers)).WillReturnRows(expected)
+
+	commonStudents, err := store.GetCommonStudents(teachers)
+
+	require.NoError(t, err)
+	require.Equal(t, []string{studentEmail1, studentEmail2}, commonStudents)
+
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
 func TestAddSuspension(t *testing.T) {
 	db, mock := NewMockDB()
 	defer db.Close()
@@ -79,5 +104,37 @@ func TestAddSuspension(t *testing.T) {
 	err := store.AddSuspension(suspension)
 	require.NoError(t, err)
 
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentExists(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+	expected := mock.NewRows([]string{"email"}).AddRow("student@example.com")
+	studentEmail := "student@example.com"
+	mock.ExpectQuery("SELECT email FROM students").WithArgs(studentEmail).WillReturnRows(expected)
+
+	ifStudentExists, err := store.IfStudentExists(studentEmail)
+
+	require.NoError(t, err)
+	require.Equal(t, ifStudentExists, true)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestStudentDoesNotExist(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+	expected := mock.NewRows([]string{"email"})
+	studentEmail := "student@example.com"
+	mock.ExpectQuery("SELECT email FROM students").WithArgs(studentEmail).WillReturnRows(expected)
+
+	ifStudentExists, err := store.IfStudentExists(studentEmail)
+
+	require.NoError(t, err)
+	require.Equal(t, ifStudentExists, false)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
