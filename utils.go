@@ -10,7 +10,8 @@ import (
 )
 
 func LoadDotEnv() {
-	err := godotenv.Load(".env")
+	// Load only .dev.env
+	err := godotenv.Load(".dev.env")
 
 	if err != nil {
 		log.Fatalf("Error loading .env file")

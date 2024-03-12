@@ -1,6 +1,7 @@
 version: '3.9'
 
 services:
+  # Services for used for actual Take Home submission
   web:
     build:
       context: .
@@ -8,10 +9,12 @@ services:
     ports:
       - "8080:8080"
     depends_on: 
-      - postgres
+      - postgres-dev
     env_file:
       - .env
-    command: ["./wait-for-it.sh", "postgres:5432", "--", "./main"] 
+    profiles:
+      - prod
+    command: ["./wait-for-it.sh", "postgres:5432", "--timeout=60", "--", "./main"] 
   postgres:
     image: postgres:16-alpine
     ports:
@@ -20,6 +23,41 @@ services:
       - ./postgres:/var/lib/postgresql/data
     env_file:
       - .env
+    profiles:
+      - prod
 
-volumes:
-  postgres:
+
+  # Dev database for use during development
+  postgres-dev:
+    image: postgres:16-alpine
+    ports:
+      - 5431:5432
+    volumes:
+      - ./postgres-dev:/var/lib/postgresql/data
+    env_file:
+      - .dev.env
+    profiles:
+      - dev
+
+
+  # Test services for use during testing
+  web-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    ports:
+      - "8079:8080"
+    depends_on: 
+      - postgres-dev
+    env_file:
+      - .test.env
+    profiles:
+      - test
+  postgres-test:
+    image: postgres:16-alpine
+    ports:
+      - 5430:5432
+    env_file:
+      - .test.env
+    profiles:
+      - test
