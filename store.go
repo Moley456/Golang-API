@@ -99,6 +99,18 @@ func (store *Store) AddTeacher(teacher *Teacher) error {
 	return err
 }
 
+func (store *Store) IfStudentExists(email string) (bool, error) {
+	var studentToFind []string
+	query := `SELECT email FROM students WHERE email = $1`
+
+	err := store.db.Select(&studentToFind, query, email)
+	if err != nil {
+		return false, err
+	}
+
+	return len(studentToFind) != 0, nil
+}
+
 func (store *Store) AddStudents(students []*Student) error {
 	var queryBuilder strings.Builder
 	queryBuilder.WriteString("INSERT INTO students (email) VALUES ")
@@ -166,7 +178,7 @@ func (store *Store) GetCommonStudents(teachers []*Teacher) ([]string, error) {
 }
 
 func (store *Store) AddSuspension(suspension *Suspension) error {
-	query := `INSERT INTO suspensions (email, suspended_at) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+	query := `INSERT INTO suspensions (student_email, suspended_at) VALUES ($1, $2) ON CONFLICT DO NOTHING`
 
 	_, err := store.db.Exec(query, suspension.Email, suspension.SuspendedAt)
 	return err

@@ -131,7 +131,18 @@ func handleSuspension(c *gin.Context, store *Store) {
 		return
 	}
 
-	// validate email and create new Student instance
+	// Check if student is registered
+	isStudentExists, err := store.IfStudentExists(input.Student)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "Something went wrong when checking if student is registered."})
+		return
+	}
+	if !isStudentExists {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "Given student is not registered."})
+		return
+	}
+
+	// validate email and create new Suspension instance
 	var suspension *Suspension
 	if IsValidEmail(input.Student) {
 		suspension = NewSuspension(input.Student)
