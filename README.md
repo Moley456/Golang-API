@@ -1,5 +1,9 @@
 # Golang API Server
 
+## Note
+
+The `.env` file is committed just for submission purposes.
+
 ## To Build Locally
 
 ### Prerequisites
