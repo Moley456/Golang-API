@@ -66,3 +66,18 @@ func TestRegister(t *testing.T) {
 
 	require.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestAddSuspension(t *testing.T) {
+	db, mock := NewMockDB()
+	defer db.Close()
+
+	store := &Store{db: db}
+
+	suspension := NewSuspension("student_suspened@example.com")
+	mock.ExpectExec("INSERT INTO suspensions").WithArgs(suspension.Email, suspension.SuspendedAt).WillReturnResult(sqlmock.NewResult(1, 1))
+
+	err := store.AddSuspension(suspension)
+	require.NoError(t, err)
+
+	require.NoError(t, mock.ExpectationsWereMet())
+}
