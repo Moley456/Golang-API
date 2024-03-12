@@ -122,3 +122,31 @@ func (store *Store) Register(teacherStudentPairs []TeacherStudentPair) error {
 	_, err := store.db.Exec(query, params...)
 	return err
 }
+
+func (store *Store) GetCommonStudents(teachers []string) ([]string, error) {
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString(`SELECT student_email AS email
+		FROM registered
+		WHERE teacher_email IN (`)
+	params := make([]interface{}, len(teachers))
+	for i, teacher := range teachers {
+		params[i] = teacher
+
+		queryBuilder.WriteString(fmt.Sprintf("$%d,", i+1))
+	}
+
+	query := queryBuilder.String()
+
+	// remove the last comma and finish the query
+	query = query[:len(query)-1] + fmt.Sprintf(") GROUP BY student_email HAVING COUNT(DISTINCT teacher_email) = $%d;", len(params)+1)
+
+	// Append param for the HAVING condition
+	params = append(params, len(teachers))
+	students := []string{}
+
+	err := store.db.Select(&students, query, params...)
+	if err != nil {
+		return nil, err
+	}
+	return students, nil
+}

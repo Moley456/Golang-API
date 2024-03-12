@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"net/http"
@@ -48,6 +49,7 @@ func main() {
 func setupRouter(store *Store) *gin.Engine {
 	router := gin.Default()
 	router.POST("/api/register", makeHandleFunc(handleRegister, store))
+	router.GET("/api/commonstudents", makeHandleFunc(handleCommonStudents, store))
 
 	return router
 }
@@ -66,11 +68,13 @@ func handleRegister(c *gin.Context, store *Store) {
 	// validate emails
 	if !IsValidEmail(input.Teacher) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("Teacher's email (%s) is invalid.", input.Teacher)})
+		return
 	}
 
 	for _, studentEmail := range input.Students {
 		if !IsValidEmail(studentEmail) {
 			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A student's email (%s) is invalid.", studentEmail)})
+			return
 		}
 	}
 
@@ -97,6 +101,30 @@ func handleRegister(c *gin.Context, store *Store) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func handleCommonStudents(c *gin.Context, store *Store) {
+	teachers := c.QueryArray("teacher")
+	if len(teachers) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "No teachers given in request."})
+		return
+	}
+
+	// Validate emails
+	for _, teacher := range teachers {
+		if !IsValidEmail(teacher) {
+			c.JSON(http.StatusBadRequest, gin.H{"message": fmt.Sprintf("A teacher's email (%s) is invalid.", teacher)})
+			return
+		}
+	}
+
+	students, err := store.GetCommonStudents(teachers)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error(), "message": "failed to get common students."})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"students": students})
 }
 
 // Function to convert API Handlers to Gin Handle Funcs because of the store param
